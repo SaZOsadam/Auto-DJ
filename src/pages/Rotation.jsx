@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Navbar from '../components/Navbar'
 import {
   getSettings, getPlaylists, getRotationState, saveRotationState,
-  buildRotationStatus, skipToNext,
+  buildRotationStatus, skipToNext, recordPlaylistPlay, recordSongPlay,
 } from '../services/storage'
 
 export default function Rotation() {
@@ -74,11 +74,21 @@ export default function Rotation() {
       // In interval mode: skips early if playlist ends before timer
       // In playlist_end mode: this is the primary skip trigger
       let lastPosition = 0
+      let lastTrackUri = null
       EmbedController.addListener('playback_update', (e) => {
         const data = e?.data || e
         const isPaused = data.isPaused
         const position = data.position ?? 0
         const duration = data.duration ?? 0
+
+        // Track song plays — detect when a new track starts
+        const trackUri = data.trackUri || data.track_uri || null
+        const trackName = data.trackName || data.track_name || null
+        const artistName = data.artistName || data.artist_name || null
+        if (trackUri && trackUri !== lastTrackUri && !isPaused && position < 5000) {
+          lastTrackUri = trackUri
+          recordSongPlay(trackUri, trackName, artistName, currentPlIdRef.current)
+        }
 
         if (!isPaused) {
           // Currently playing — track position, mark active, cancel any pending end-check
@@ -169,6 +179,7 @@ export default function Rotation() {
     }
     const result = skipToNext()
     if (result?.current_playlist?.playlist_id) {
+      recordPlaylistPlay(result.current_playlist.playlist_id, result.current_playlist.name)
       currentPlIdRef.current = null
       switchPlaylist(result.current_playlist.playlist_id)
     }
@@ -265,6 +276,9 @@ export default function Rotation() {
     const settings = getSettings()
     saveRotationState({ ...rotation, enabled: true })
     const data = refreshStatus()
+    if (data.current_playlist) {
+      recordPlaylistPlay(data.current_playlist.playlist_id, data.current_playlist.name)
+    }
     if (settings.rotation_mode === 'interval') {
       const secs = (settings.interval_minutes || 1) * 60
       targetTimeRef.current = Date.now() + secs * 1000

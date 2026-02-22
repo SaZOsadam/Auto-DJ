@@ -25,6 +25,7 @@ export default function Navbar() {
           {navLink('/playlists', 'Playlists')}
           {navLink('/settings', 'Settings')}
           {navLink('/rotation', 'Rotation')}
+          {navLink('/stats', 'Stats')}
         </div>
         {/* Mobile hamburger */}
         <button
@@ -48,6 +49,7 @@ export default function Navbar() {
           {navLink('/playlists', 'Playlists')}
           {navLink('/settings', 'Settings')}
           {navLink('/rotation', 'Rotation')}
+          {navLink('/stats', 'Stats')}
         </div>
       )}
     </nav>

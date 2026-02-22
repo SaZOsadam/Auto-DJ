@@ -2,6 +2,7 @@ const KEYS = {
   PLAYLISTS: 'autodj_playlists',
   SETTINGS: 'autodj_settings',
   ROTATION: 'autodj_rotation',
+  STATS: 'autodj_stats',
 }
 
 const DEFAULT_SETTINGS = {
@@ -112,6 +113,26 @@ export function parsePlaylistId(input) {
   return null
 }
 
+// --- Fetch playlist name from Spotify oEmbed (no auth needed) ---
+export async function fetchPlaylistName(playlistId) {
+  try {
+    const url = `https://open.spotify.com/oembed?url=https://open.spotify.com/playlist/${playlistId}`
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const data = await res.json()
+    // oEmbed title format is usually "PlaylistName - playlist by UserName | Spotify"
+    // or just "PlaylistName" — extract the first part
+    const title = data.title || null
+    if (title) {
+      // Remove trailing " | Spotify" and " - playlist by ..." if present
+      return title.replace(/\s*\|\s*Spotify$/, '').replace(/\s*-\s*playlist by\s+.*$/, '').trim()
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 // --- Build rotation status object (mirrors old backend /rotation/status shape) ---
 export function buildRotationStatus() {
   const settings = getSettings()
@@ -132,6 +153,64 @@ export function buildRotationStatus() {
     playlists,
     total_playlists: playlists.length,
   }
+}
+
+// --- Play Stats ---
+// Shape: { playlists: { [playlistId]: { name, count, lastPlayed } }, songs: { [trackUri]: { name, artist, count, lastPlayed, playlistId } } }
+export function getStats() {
+  try {
+    const raw = localStorage.getItem(KEYS.STATS)
+    return raw ? JSON.parse(raw) : { playlists: {}, songs: {} }
+  } catch {
+    return { playlists: {}, songs: {} }
+  }
+}
+
+function saveStats(stats) {
+  localStorage.setItem(KEYS.STATS, JSON.stringify(stats))
+}
+
+export function recordPlaylistPlay(playlistId, playlistName) {
+  const stats = getStats()
+  if (!stats.playlists[playlistId]) {
+    stats.playlists[playlistId] = { name: playlistName, count: 0, lastPlayed: null }
+  }
+  stats.playlists[playlistId].count += 1
+  stats.playlists[playlistId].lastPlayed = new Date().toISOString()
+  stats.playlists[playlistId].name = playlistName || stats.playlists[playlistId].name
+  saveStats(stats)
+}
+
+export function recordSongPlay(trackUri, trackName, artistName, playlistId) {
+  const stats = getStats()
+  if (!stats.songs[trackUri]) {
+    stats.songs[trackUri] = { name: trackName, artist: artistName, count: 0, lastPlayed: null, playlistId }
+  }
+  stats.songs[trackUri].count += 1
+  stats.songs[trackUri].lastPlayed = new Date().toISOString()
+  stats.songs[trackUri].name = trackName || stats.songs[trackUri].name
+  stats.songs[trackUri].artist = artistName || stats.songs[trackUri].artist
+  saveStats(stats)
+}
+
+export function getTopSongs(limit = 20) {
+  const stats = getStats()
+  return Object.entries(stats.songs)
+    .map(([uri, data]) => ({ uri, ...data }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit)
+}
+
+export function getTopPlaylists(limit = 20) {
+  const stats = getStats()
+  return Object.entries(stats.playlists)
+    .map(([id, data]) => ({ id, ...data }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit)
+}
+
+export function clearStats() {
+  localStorage.removeItem(KEYS.STATS)
 }
 
 // --- Skip to next playlist ---

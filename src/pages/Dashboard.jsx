@@ -1,11 +1,14 @@
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import { getPlaylists, getSettings, getRotationState } from '../services/storage'
+import { getPlaylists, getSettings, getRotationState, getStats } from '../services/storage'
 
 export default function Dashboard() {
   const playlists = getPlaylists()
   const settings = getSettings()
   const rotation = getRotationState()
+  const stats = getStats()
+  const totalSongPlays = Object.values(stats.songs).reduce((sum, s) => sum + s.count, 0)
+  const totalPlaylistPlays = Object.values(stats.playlists).reduce((sum, p) => sum + p.count, 0)
 
   const count = playlists.length
   const on = rotation.enabled && count >= 2
@@ -20,7 +23,7 @@ export default function Dashboard() {
           <p className="text-gray-400">Manage your automatic Spotify playlist rotation.</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
           <div className="bg-gray-800 rounded-lg p-5 border border-gray-700">
             <p className="text-gray-400 text-sm mb-1">Playlists</p>
             <p className="text-2xl font-bold">{count}</p>
@@ -38,6 +41,16 @@ export default function Dashboard() {
             <p className="text-2xl font-bold capitalize">{settings.rotation_mode.replace('_', ' ')}</p>
             <p className="text-gray-500 text-xs mt-1">{settings.rotation_mode === 'interval' ? `Every ${settings.interval_minutes} min` : 'At playlist end'}</p>
           </div>
+          <Link to="/stats" className="bg-gray-800 rounded-lg p-5 border border-gray-700 hover:border-green-500/50 transition-colors">
+            <p className="text-gray-400 text-sm mb-1">Song Plays</p>
+            <p className="text-2xl font-bold text-green-400">{totalSongPlays}</p>
+            <p className="text-gray-500 text-xs mt-1">{Object.keys(stats.songs).length} unique tracks</p>
+          </Link>
+          <Link to="/stats" className="bg-gray-800 rounded-lg p-5 border border-gray-700 hover:border-blue-500/50 transition-colors">
+            <p className="text-gray-400 text-sm mb-1">Playlist Plays</p>
+            <p className="text-2xl font-bold text-blue-400">{totalPlaylistPlays}</p>
+            <p className="text-gray-500 text-xs mt-1">{Object.keys(stats.playlists).length} playlists tracked</p>
+          </Link>
         </div>
 
         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">

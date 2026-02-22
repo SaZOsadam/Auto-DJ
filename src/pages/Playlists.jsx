@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import Navbar from '../components/Navbar'
 import PlaylistCard from '../components/PlaylistCard'
-import { getPlaylists, savePlaylists, loadDefaultPlaylists, parsePlaylistId } from '../services/storage'
+import { getPlaylists, savePlaylists, loadDefaultPlaylists, parsePlaylistId, fetchPlaylistName } from '../services/storage'
 
 export default function Playlists() {
   const [playlists, setPlaylists] = useState(() => getPlaylists())
   const [link, setLink] = useState('')
   const [error, setError] = useState('')
   const [defaultsMsg, setDefaultsMsg] = useState('')
+  const [adding, setAdding] = useState(false)
 
   const handleLoadDefaults = () => {
     setDefaultsMsg('')
@@ -17,7 +18,7 @@ export default function Playlists() {
     setDefaultsMsg(result.added > 0 ? `Added ${result.added} default playlist(s)!` : 'Default playlists already added.')
   }
 
-  const handleAddPlaylist = (e) => {
+  const handleAddPlaylist = async (e) => {
     e.preventDefault()
     setError('')
     const playlistId = parsePlaylistId(link)
@@ -30,16 +31,19 @@ export default function Playlists() {
       setError('This playlist is already in your list.')
       return
     }
+    setAdding(true)
+    const realName = await fetchPlaylistName(playlistId)
     const newPlaylist = {
       id: crypto.randomUUID(),
       playlist_id: playlistId,
-      name: `Playlist ${playlistId.slice(0, 8)}...`,
+      name: realName || `Playlist ${playlistId.slice(0, 8)}...`,
       source: 'manual',
     }
     const updated = [...existing, newPlaylist]
     savePlaylists(updated)
     setPlaylists(updated)
     setLink('')
+    setAdding(false)
   }
 
   const handleDelete = (id) => {
@@ -76,9 +80,10 @@ export default function Playlists() {
             />
             <button
               type="submit"
-              className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-lg transition-colors"
+              disabled={adding}
+              className="bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white font-semibold px-6 py-2 rounded-lg transition-colors"
             >
-              Add Playlist
+              {adding ? 'Adding...' : 'Add Playlist'}
             </button>
           </form>
           {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
