@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar'
 import {
   getSettings, getPlaylists, getRotationState, saveRotationState,
   buildRotationStatus, skipToNext, recordPlaylistPlay, recordSongPlay,
+  saveTimerTarget, getTimerTarget,
 } from '../services/storage'
 
 function openInSpotify(playlistId) {
@@ -207,17 +208,34 @@ export default function Rotation() {
     const settings = getSettings()
     if (settings.rotation_mode === 'interval') {
       const secs = (settings.interval_minutes || 1) * 60
-      targetTimeRef.current = Date.now() + secs * 1000
+      const target = Date.now() + secs * 1000
+      targetTimeRef.current = target
+      saveTimerTarget(target)
       setCountdown(secs)
     } else {
       setCountdown(null)
       targetTimeRef.current = null
+      saveTimerTarget(null)
     }
     skippingRef.current = false
   }, [switchPlaylist, refreshStatus])
 
   // Keep doSkipRef in sync
   useEffect(() => { doSkipRef.current = doSkip }, [doSkip])
+
+  // Restore timer on page load if rotation was active
+  useEffect(() => {
+    const data = refreshStatus()
+    if (data.enabled && data.rotation_mode === 'interval') {
+      const saved = getTimerTarget()
+      if (saved) {
+        targetTimeRef.current = saved
+        const remaining = Math.max(0, Math.round((saved - Date.now()) / 1000))
+        setCountdown(remaining)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Single timer: ticks every second, updates countdown, triggers skip at 0
   useEffect(() => {
@@ -296,7 +314,9 @@ export default function Rotation() {
     }
     if (settings.rotation_mode === 'interval') {
       const secs = (settings.interval_minutes || 1) * 60
-      targetTimeRef.current = Date.now() + secs * 1000
+      const target = Date.now() + secs * 1000
+      targetTimeRef.current = target
+      saveTimerTarget(target)
       setCountdown(secs)
     }
     setSuccessMsg('Rotation started! Press play on the player below. Log in to Spotify in your browser for full songs.')
@@ -315,6 +335,7 @@ export default function Rotation() {
     saveRotationState({ ...rotation, enabled: false })
     setCountdown(null)
     targetTimeRef.current = null
+    saveTimerTarget(null)
     enabledRef.current = false
     if (controllerRef.current) {
       controllerRef.current.pause()
@@ -345,11 +366,14 @@ export default function Rotation() {
     const settings = getSettings()
     if (settings.rotation_mode === 'interval') {
       const secs = (settings.interval_minutes || 1) * 60
-      targetTimeRef.current = Date.now() + secs * 1000
+      const target = Date.now() + secs * 1000
+      targetTimeRef.current = target
+      saveTimerTarget(target)
       setCountdown(secs)
     } else {
       setCountdown(null)
       targetTimeRef.current = null
+      saveTimerTarget(null)
     }
   }
 

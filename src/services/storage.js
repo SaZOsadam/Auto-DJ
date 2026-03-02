@@ -213,6 +213,27 @@ export function clearStats() {
   localStorage.removeItem(KEYS.STATS)
 }
 
+// --- Timer persistence (survives tab close/refresh) ---
+export function saveTimerTarget(targetMs) {
+  if (targetMs) {
+    localStorage.setItem('autodj_timer_target', String(targetMs))
+  } else {
+    localStorage.removeItem('autodj_timer_target')
+  }
+}
+
+export function getTimerTarget() {
+  try {
+    const raw = localStorage.getItem('autodj_timer_target')
+    if (!raw) return null
+    const t = Number(raw)
+    // Only return if it's in the future
+    return t > Date.now() ? t : null
+  } catch {
+    return null
+  }
+}
+
 // --- Skip to next playlist ---
 export function skipToNext() {
   const playlists = getPlaylists()
