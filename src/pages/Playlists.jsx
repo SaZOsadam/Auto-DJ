@@ -63,8 +63,8 @@ export default function Playlists() {
           <p className="text-gray-400 text-sm mb-3">
             Paste a Spotify playlist URL. Accepted formats:
           </p>
-          <ul className="text-gray-500 text-sm mb-4 space-y-1 ml-4 list-disc">
-            <li>https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M</li>
+          <ul className="text-gray-500 text-xs sm:text-sm mb-4 space-y-1 ml-4 list-disc break-all">
+            <li>https://open.spotify.com/playlist/37i9dQ...</li>
             <li>spotify:playlist:37i9dQZF1DXcBWIGoYBM5M</li>
           </ul>
           <form onSubmit={handleAddPlaylist} className="flex flex-col sm:flex-row gap-3">

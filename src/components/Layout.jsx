@@ -120,14 +120,14 @@ export default function Layout() {
   const closeSidebar = () => setSidebarOpen(false)
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex">
+    <div className="min-h-screen min-h-[100dvh] bg-gray-900 text-white flex overflow-x-hidden">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={closeSidebar} />
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed lg:sticky top-0 left-0 z-40 h-screen w-64 bg-gray-800 border-r border-gray-700 flex flex-col transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed lg:sticky top-0 left-0 z-40 h-[100dvh] h-screen w-64 bg-gray-800 border-r border-gray-700 flex flex-col transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         {/* Logo + rotation indicator */}
         <div className="p-4 border-b border-gray-700">
           <Link to="/dashboard" onClick={closeSidebar} className="flex items-center gap-2">
@@ -155,7 +155,7 @@ export default function Layout() {
                       key={item.to}
                       to={item.to}
                       onClick={closeSidebar}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors ${
                         active
                           ? 'bg-green-900/40 text-green-400 border border-green-700/50'
                           : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
@@ -181,26 +181,27 @@ export default function Layout() {
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen min-h-[100dvh] min-w-0 overflow-x-hidden">
         {/* Mobile top bar */}
         <header className="lg:hidden bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between sticky top-0 z-20">
-          <button onClick={() => setSidebarOpen(true)} className="text-gray-300 hover:text-white p-1" aria-label="Open menu">
+          <button onClick={() => setSidebarOpen(true)} className="text-gray-300 hover:text-white p-2 -ml-2 rounded-lg active:bg-gray-700" aria-label="Open menu">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
           <Link to="/dashboard" className="text-xl font-bold text-green-400">AutoDJ</Link>
-          <div className="w-8">
+          <div className="w-10 flex justify-end">
             {rotationActive && (
-              <Link to="/rotation" className="flex items-center">
-                <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
+              <Link to="/rotation" className="flex items-center gap-1.5 bg-green-900/40 rounded-full px-2 py-1">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                {timerDisplay && <span className="text-green-400 font-mono text-xs">{timerDisplay}</span>}
               </Link>
             )}
           </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1">
+        <main className="flex-1 overflow-x-hidden">
           <Outlet />
         </main>
       </div>

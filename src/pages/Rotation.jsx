@@ -401,15 +401,15 @@ export default function Rotation() {
 
         {/* Playlist Ended Alert */}
         {playlistEnded && !switching && (
-          <div className="bg-orange-900/30 border border-orange-500 rounded-lg p-4 mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">&#128276;</span>
-              <div>
-                <p className="text-orange-400 font-semibold">Playlist finished!</p>
-                <p className="text-gray-400 text-sm">The current playlist has ended. AutoDJ is switching to the next one.</p>
+          <div className="bg-orange-900/30 border border-orange-500 rounded-lg p-3 sm:p-4 mb-4 flex items-start sm:items-center justify-between gap-2">
+            <div className="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
+              <span className="text-xl sm:text-2xl flex-shrink-0">&#128276;</span>
+              <div className="min-w-0">
+                <p className="text-orange-400 font-semibold text-sm sm:text-base">Playlist finished!</p>
+                <p className="text-gray-400 text-xs sm:text-sm">AutoDJ is switching to the next one.</p>
               </div>
             </div>
-            <button onClick={handleDismissAlert} className="text-gray-500 hover:text-white text-xl px-2">&times;</button>
+            <button onClick={handleDismissAlert} className="text-gray-500 hover:text-white text-xl px-2 flex-shrink-0">&times;</button>
           </div>
         )}
 
@@ -438,8 +438,8 @@ export default function Rotation() {
               </div>
             </div>
           )}
-          <div className="rounded-xl overflow-hidden bg-gray-800" style={{ minHeight: 232 }}>
-            <div ref={embedElRef}></div>
+          <div className="rounded-xl overflow-hidden bg-gray-800 w-full" style={{ minHeight: 152 }}>
+            <div ref={embedElRef} className="w-full [&>iframe]:!w-full [&>iframe]:!max-w-full"></div>
           </div>
           {status?.enabled && currentPl && (
             <p className="text-gray-500 text-xs mt-2 text-center">
@@ -450,10 +450,10 @@ export default function Rotation() {
 
         {/* Countdown Timer — interval mode only */}
         {status?.enabled && status?.rotation_mode === 'interval' && countdown != null && (
-          <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-6 text-center">
-            <p className="text-gray-400 text-sm mb-2">Next playlist switch in</p>
-            <p className="text-4xl sm:text-5xl font-mono font-bold text-green-400">{formatTime(countdown)}</p>
-            <p className="text-gray-500 text-sm mt-2">Every {status.interval_minutes} minutes</p>
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-700 mb-6 text-center">
+            <p className="text-gray-400 text-xs sm:text-sm mb-2">Next playlist switch in</p>
+            <p className="text-3xl sm:text-5xl font-mono font-bold text-green-400">{formatTime(countdown)}</p>
+            <p className="text-gray-500 text-xs sm:text-sm mt-2">Every {status.interval_minutes} minutes</p>
           </div>
         )}
         {/* Playlist End mode — auto-detect indicator */}
@@ -478,13 +478,13 @@ export default function Rotation() {
 
         {/* Next Up */}
         {status?.enabled && nextPl && !switching && (
-          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-6">
-            <div className="flex items-center justify-between">
-              <div>
+          <div className="bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-700 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
+              <div className="min-w-0">
                 <p className="text-gray-400 text-xs uppercase tracking-wide">Up Next</p>
-                <h3 className="text-lg font-semibold">{nextPl.name}</h3>
+                <h3 className="text-base sm:text-lg font-semibold truncate">{nextPl.name}</h3>
               </div>
-              <span className="text-gray-500 text-sm">
+              <span className="text-gray-500 text-xs sm:text-sm flex-shrink-0">
                 {status?.rotation_mode === 'interval' ? 'Auto-switches when timer ends' : 'Auto-switches when playlist ends'}
               </span>
             </div>
@@ -493,32 +493,32 @@ export default function Rotation() {
 
         {/* Rotation Queue */}
         {status?.enabled && status?.playlists?.length > 0 && (
-          <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-6">
-            <h2 className="text-lg font-semibold mb-4">Rotation Queue ({status.total_playlists} playlists)</h2>
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-700 mb-6">
+            <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Rotation Queue ({status.total_playlists} playlists)</h2>
             <div className="space-y-2">
               {status.playlists.map((pl, i) => (
                 <div
                   key={pl.id}
-                  className={`flex items-center justify-between p-3 rounded-lg ${
+                  className={`flex items-center justify-between p-2.5 sm:p-3 rounded-lg gap-2 ${
                     i === status.current_playlist_index
                       ? 'bg-green-900/30 border border-green-700/50'
                       : 'bg-gray-700/50'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-gray-500 text-sm w-6 text-right">{i + 1}</span>
-                    <span className={i === status.current_playlist_index ? 'text-green-400 font-semibold' : 'text-gray-300'}>
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <span className="text-gray-500 text-xs sm:text-sm w-5 sm:w-6 text-right flex-shrink-0">{i + 1}</span>
+                    <span className={`truncate text-sm sm:text-base ${i === status.current_playlist_index ? 'text-green-400 font-semibold' : 'text-gray-300'}`}>
                       {pl.name}
                     </span>
                     {i === status.current_playlist_index && (
-                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Now</span>
+                      <span className="text-xs bg-green-500/20 text-green-400 px-1.5 sm:px-2 py-0.5 rounded flex-shrink-0">Now</span>
                     )}
                   </div>
                   <a
                     href={`https://open.spotify.com/playlist/${pl.playlist_id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-green-400 hover:text-green-300 text-xs"
+                    className="text-green-400 hover:text-green-300 text-xs flex-shrink-0"
                   >
                     Open
                   </a>
@@ -529,20 +529,20 @@ export default function Rotation() {
         )}
 
         {/* Controls */}
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-          <h2 className="text-lg font-semibold mb-4">Controls</h2>
+        <div className="bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-700">
+          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Controls</h2>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <button
               onClick={handleStart}
               disabled={status && status.enabled}
-              className="flex-1 bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-lg transition-colors text-lg"
+              className="flex-1 bg-green-500 hover:bg-green-600 active:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-3.5 sm:py-3 rounded-lg transition-colors text-base sm:text-lg"
             >
               Start Rotation
             </button>
             <button
               onClick={handleStop}
               disabled={status && !status.enabled}
-              className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-lg transition-colors text-lg"
+              className="flex-1 bg-red-500 hover:bg-red-600 active:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-3.5 sm:py-3 rounded-lg transition-colors text-base sm:text-lg"
             >
               Stop Rotation
             </button>
@@ -556,9 +556,9 @@ export default function Rotation() {
 
         {/* Not started state */}
         {!status?.enabled && (
-          <div className="mt-6 bg-gray-800 rounded-lg p-6 border border-gray-700 text-center">
-            <h3 className="text-lg font-semibold mb-2">How it works</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-400">
+          <div className="mt-6 bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-700 text-center">
+            <h3 className="text-base sm:text-lg font-semibold mb-2">How it works</h3>
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400">
               <div className="p-3">
                 <p className="text-2xl mb-2">1</p>
                 <p>Hit <span className="text-green-400">Start Rotation</span></p>

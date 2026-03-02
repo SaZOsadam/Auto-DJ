@@ -20,37 +20,37 @@ export default function Dashboard() {
           <p className="text-gray-400">Manage your automatic Spotify playlist rotation.</p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
-          <div className="bg-gray-800 rounded-lg p-5 border border-gray-700">
-            <p className="text-gray-400 text-sm mb-1">Playlists</p>
-            <p className="text-2xl font-bold">{count}</p>
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-8">
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-5 border border-gray-700">
+            <p className="text-gray-400 text-xs sm:text-sm mb-1">Playlists</p>
+            <p className="text-xl sm:text-2xl font-bold">{count}</p>
             <p className="text-gray-500 text-xs mt-1">{ready ? 'Ready to rotate' : 'Add at least 2'}</p>
           </div>
-          <div className="bg-gray-800 rounded-lg p-5 border border-gray-700">
-            <p className="text-gray-400 text-sm mb-1">Rotation</p>
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-5 border border-gray-700">
+            <p className="text-gray-400 text-xs sm:text-sm mb-1">Rotation</p>
             <div className="flex items-center gap-2">
               <span className={`w-2.5 h-2.5 rounded-full ${on ? 'bg-green-500' : 'bg-red-500'}`} />
-              <p className="text-2xl font-bold">{on ? 'Active' : 'Off'}</p>
+              <p className="text-xl sm:text-2xl font-bold">{on ? 'Active' : 'Off'}</p>
             </div>
           </div>
-          <div className="bg-gray-800 rounded-lg p-5 border border-gray-700">
-            <p className="text-gray-400 text-sm mb-1">Mode</p>
-            <p className="text-2xl font-bold capitalize">{settings.rotation_mode.replace('_', ' ')}</p>
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-5 border border-gray-700">
+            <p className="text-gray-400 text-xs sm:text-sm mb-1">Mode</p>
+            <p className="text-xl sm:text-2xl font-bold capitalize">{settings.rotation_mode.replace('_', ' ')}</p>
             <p className="text-gray-500 text-xs mt-1">{settings.rotation_mode === 'interval' ? `Every ${settings.interval_minutes} min` : 'At playlist end'}</p>
           </div>
-          <Link to="/stats" className="bg-gray-800 rounded-lg p-5 border border-gray-700 hover:border-green-500/50 transition-colors">
-            <p className="text-gray-400 text-sm mb-1">Song Plays</p>
-            <p className="text-2xl font-bold text-green-400">{totalSongPlays}</p>
+          <Link to="/stats" className="bg-gray-800 rounded-lg p-4 sm:p-5 border border-gray-700 hover:border-green-500/50 transition-colors">
+            <p className="text-gray-400 text-xs sm:text-sm mb-1">Song Plays</p>
+            <p className="text-xl sm:text-2xl font-bold text-green-400">{totalSongPlays}</p>
             <p className="text-gray-500 text-xs mt-1">{Object.keys(stats.songs).length} unique tracks</p>
           </Link>
-          <Link to="/stats" className="bg-gray-800 rounded-lg p-5 border border-gray-700 hover:border-blue-500/50 transition-colors">
-            <p className="text-gray-400 text-sm mb-1">Playlist Plays</p>
-            <p className="text-2xl font-bold text-blue-400">{totalPlaylistPlays}</p>
+          <Link to="/stats" className="bg-gray-800 rounded-lg p-4 sm:p-5 border border-gray-700 hover:border-blue-500/50 transition-colors">
+            <p className="text-gray-400 text-xs sm:text-sm mb-1">Playlist Plays</p>
+            <p className="text-xl sm:text-2xl font-bold text-blue-400">{totalPlaylistPlays}</p>
             <p className="text-gray-500 text-xs mt-1">{Object.keys(stats.playlists).length} playlists tracked</p>
           </Link>
         </div>
 
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
+        <div className="bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-700 mb-8">
           <h2 className="text-xl font-bold mb-4">How to use AutoDJ</h2>
           <div className="space-y-4">
             <Step num={1} done={count > 0} title="Add your playlists">
@@ -65,10 +65,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Link to="/playlists" className="bg-green-600 hover:bg-green-700 rounded-lg p-4 text-center font-semibold transition-colors">+ Add Playlists</Link>
-          <Link to="/settings" className="bg-gray-700 hover:bg-gray-600 rounded-lg p-4 text-center font-semibold transition-colors">Edit Settings</Link>
-          <Link to="/rotation" className="bg-gray-700 hover:bg-gray-600 rounded-lg p-4 text-center font-semibold transition-colors">{on ? 'View Rotation' : 'Start Rotation'}</Link>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <Link to="/playlists" className="bg-green-600 hover:bg-green-700 active:bg-green-800 rounded-lg p-4 text-center font-semibold transition-colors">+ Add Playlists</Link>
+          <Link to="/settings" className="bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-lg p-4 text-center font-semibold transition-colors">Edit Settings</Link>
+          <Link to="/rotation" className="bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-lg p-4 text-center font-semibold transition-colors">{on ? 'View Rotation' : 'Start Rotation'}</Link>
         </div>
       </div>
   )
