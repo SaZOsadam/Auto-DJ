@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import Navbar from '../components/Navbar'
 import PlaylistCard from '../components/PlaylistCard'
 import { getPlaylists, savePlaylists, loadDefaultPlaylists, parsePlaylistId, fetchPlaylistName } from '../services/storage'
 
@@ -53,9 +52,7 @@ export default function Playlists() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <Navbar />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-1">Playlists</h1>
           <p className="text-gray-400">Add Spotify playlists for AutoDJ to rotate between. You need at least 2 playlists.</p>
@@ -136,6 +133,5 @@ export default function Playlists() {
           )}
         </div>
       </div>
-    </div>
   )
 }

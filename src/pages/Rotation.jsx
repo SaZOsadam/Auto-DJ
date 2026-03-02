@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import Navbar from '../components/Navbar'
 import {
   getSettings, getPlaylists, getRotationState, saveRotationState,
   buildRotationStatus, skipToNext, recordPlaylistPlay, recordSongPlay,
@@ -391,9 +390,7 @@ export default function Rotation() {
   const nextPl = status?.next_playlist
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <Navbar />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-1">Rotation</h1>
           <p className="text-gray-400">Press play once, AutoDJ handles the rest. Log in to Spotify for full songs.</p>
@@ -581,6 +578,5 @@ export default function Rotation() {
           </div>
         )}
       </div>
-    </div>
   )
 }

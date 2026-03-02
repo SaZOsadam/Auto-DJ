@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import Navbar from '../components/Navbar'
 import { getSettings, saveSettings } from '../services/storage'
 
 export default function Settings() {
@@ -14,9 +13,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <Navbar />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-1">Settings</h1>
           <p className="text-gray-400">Configure how AutoDJ rotates between your playlists.</p>
@@ -74,6 +71,5 @@ export default function Settings() {
           </button>
         </form>
       </div>
-    </div>
   )
 }

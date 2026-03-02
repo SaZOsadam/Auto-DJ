@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import Navbar from '../components/Navbar'
 import { getTopSongs, getTopPlaylists, getStats, clearStats } from '../services/storage'
 
 export default function Stats() {
@@ -25,9 +24,7 @@ export default function Stats() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <Navbar />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
             <h1 className="text-3xl font-bold mb-1">Play Stats</h1>
@@ -152,6 +149,5 @@ export default function Stats() {
           </div>
         )}
       </div>
-    </div>
   )
 }

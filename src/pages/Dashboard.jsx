@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import Navbar from '../components/Navbar'
 import { getPlaylists, getSettings, getRotationState, getStats } from '../services/storage'
 
 export default function Dashboard() {
@@ -15,9 +14,7 @@ export default function Dashboard() {
   const ready = count >= 2
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <Navbar />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <div className="mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold mb-1">Welcome to <span className="text-green-400">AutoDJ</span></h1>
           <p className="text-gray-400">Manage your automatic Spotify playlist rotation.</p>
@@ -74,7 +71,6 @@ export default function Dashboard() {
           <Link to="/rotation" className="bg-gray-700 hover:bg-gray-600 rounded-lg p-4 text-center font-semibold transition-colors">{on ? 'View Rotation' : 'Start Rotation'}</Link>
         </div>
       </div>
-    </div>
   )
 }
 
