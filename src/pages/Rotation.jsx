@@ -2,15 +2,19 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Navbar from '../components/Navbar'
 import {
   getSettings, getPlaylists, getRotationState, saveRotationState,
-  buildRotationStatus, skipToNext, recordPlaylistPlay, recordSongPlay,
+  buildRotationStatus, skipToNext, recordPlaylistPlay,
 } from '../services/storage'
+
+function openInSpotify(playlistId) {
+  const webUrl = `https://open.spotify.com/playlist/${playlistId}`
+  window.open(webUrl, '_blank')
+}
 
 export default function Rotation() {
   const [status, setStatus] = useState(() => buildRotationStatus())
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [countdown, setCountdown] = useState(null)
-  const [playerReady, setPlayerReady] = useState(false)
   const [switching, setSwitching] = useState(false)
   const [switchCountdown, setSwitchCountdown] = useState(null)
   const switchCountdownRef = useRef(null)
@@ -18,161 +22,19 @@ export default function Rotation() {
   const timerRef = useRef(null)
   const skippingRef = useRef(false)
   const enabledRef = useRef(false)
-  const controllerRef = useRef(null)
-  const embedElRef = useRef(null)
-  const currentPlIdRef = useRef(null)
-  const apiReadyRef = useRef(false)
-  const pendingUriRef = useRef(null)
-  // Playlist-end detection refs
-  const wasPlayingRef = useRef(false)
-  const endCheckTimerRef = useRef(null)
   const doSkipRef = useRef(null)
-  const modeRef = useRef('playlist_end')
-
-  // Load the Spotify IFrame API script once
-  useEffect(() => {
-    if (document.getElementById('spotify-iframe-api')) return
-    const script = document.createElement('script')
-    script.id = 'spotify-iframe-api'
-    script.src = 'https://open.spotify.com/embed/iframe-api/v1'
-    script.async = true
-    document.body.appendChild(script)
-  }, [])
-
-  // Set up the global callback for when the API is ready
-  useEffect(() => {
-    // If the API already loaded from a previous mount, grab it
-    if (window.SpotifyIframeApi && !apiReadyRef.current) {
-      apiReadyRef.current = window.SpotifyIframeApi
-    }
-    window.onSpotifyIframeApiReady = (IFrameAPI) => {
-      apiReadyRef.current = IFrameAPI
-      window.SpotifyIframeApi = IFrameAPI
-      // If we already have a pending URI, create the controller now
-      if (pendingUriRef.current && embedElRef.current) {
-        createPlayer(IFrameAPI, pendingUriRef.current)
-        pendingUriRef.current = null
-      }
-    }
-    return () => { window.onSpotifyIframeApiReady = undefined }
-  }, [])
-
-  const createPlayer = useCallback((IFrameAPI, playlistId) => {
-    const element = embedElRef.current
-    if (!element) return
-    const options = {
-      uri: `spotify:playlist:${playlistId}`,
-      width: '100%',
-      height: 352,
-    }
-    IFrameAPI.createController(element, options, (EmbedController) => {
-      controllerRef.current = EmbedController
-      currentPlIdRef.current = playlistId
-      setPlayerReady(true)
-      EmbedController.addListener('ready', () => {})
-      // Playlist-end detection via playback events (active in ALL modes)
-      // In interval mode: skips early if playlist ends before timer
-      // In playlist_end mode: this is the primary skip trigger
-      let lastPosition = 0
-      let lastTrackUri = null
-      EmbedController.addListener('playback_update', (e) => {
-        const data = e?.data || e
-        const isPaused = data.isPaused
-        const position = data.position ?? 0
-        const duration = data.duration ?? 0
-
-        // Track song plays — detect when a new track starts
-        const trackUri = data.trackUri || data.track_uri || null
-        const trackName = data.trackName || data.track_name || null
-        const artistName = data.artistName || data.artist_name || null
-        if (trackUri && trackUri !== lastTrackUri && !isPaused && position < 5000) {
-          lastTrackUri = trackUri
-          recordSongPlay(trackUri, trackName, artistName, currentPlIdRef.current)
-        }
-
-        if (!isPaused) {
-          // Currently playing — track position, mark active, cancel any pending end-check
-          lastPosition = position
-          wasPlayingRef.current = true
-          // Cancel playlist-end detection if music resumed (false positive)
-          if (endCheckTimerRef.current) {
-            clearInterval(endCheckTimerRef.current)
-            endCheckTimerRef.current = null
-            // Only clear switching UI if it was started by playlist-end detection, not by timer
-            if (!switchCountdownRef.current) {
-              setSwitching(false)
-              setSwitchCountdown(null)
-            }
-          }
-        } else if (wasPlayingRef.current && isPaused) {
-          // Paused after playing — determine WHY
-          const isNearEnd = duration > 0 && (duration - position) < 3000
-          // pos jumped to 0 from a high position = playlist finished and reset
-          const isEndReset = position === 0 && lastPosition > 5000
-          // pos equals duration = track completed naturally
-          const isTrackDone = duration > 0 && position >= duration - 500
-
-          if (isNearEnd || isEndReset || isTrackDone) {
-            // Natural end — show 3-2-1 countdown, skip at 0
-            if (!endCheckTimerRef.current) {
-              setSwitching(true)
-              setSwitchCountdown(3)
-              let count = 3
-              endCheckTimerRef.current = setInterval(() => {
-                count -= 1
-                if (count > 0) {
-                  setSwitchCountdown(count)
-                } else {
-                  clearInterval(endCheckTimerRef.current)
-                  endCheckTimerRef.current = null
-                  setSwitching(false)
-                  setSwitchCountdown(null)
-                  if (enabledRef.current) {
-                    doSkipRef.current?.()
-                  }
-                }
-              }, 1000)
-            }
-          }
-          // Manual pause (mid-track) — do nothing, interval timer handles rotation
-        }
-      })
-    })
-  }, [])
-
-  const switchPlaylist = useCallback((playlistId) => {
-    if (!playlistId) return
-    if (controllerRef.current) {
-      currentPlIdRef.current = playlistId
-      controllerRef.current.loadUri(`spotify:playlist:${playlistId}`)
-      setTimeout(() => {
-        controllerRef.current?.play()
-      }, 1000)
-    } else if (apiReadyRef.current && embedElRef.current) {
-      createPlayer(apiReadyRef.current, playlistId)
-    } else {
-      pendingUriRef.current = playlistId
-    }
-  }, [createPlayer])
 
   // Refresh status from localStorage
   const refreshStatus = useCallback(() => {
     const data = buildRotationStatus()
     setStatus(data)
     enabledRef.current = data.enabled
-    modeRef.current = data.rotation_mode || 'playlist_end'
     return data
   }, [])
 
   const doSkip = useCallback(() => {
     if (skippingRef.current) return
     skippingRef.current = true
-    // Reset playlist-end detection state
-    wasPlayingRef.current = false
-    if (endCheckTimerRef.current) {
-      clearInterval(endCheckTimerRef.current)
-      endCheckTimerRef.current = null
-    }
     if (switchCountdownRef.current) {
       clearInterval(switchCountdownRef.current)
       switchCountdownRef.current = null
@@ -180,8 +42,7 @@ export default function Rotation() {
     const result = skipToNext()
     if (result?.current_playlist?.playlist_id) {
       recordPlaylistPlay(result.current_playlist.playlist_id, result.current_playlist.name)
-      currentPlIdRef.current = null
-      switchPlaylist(result.current_playlist.playlist_id)
+      openInSpotify(result.current_playlist.playlist_id)
     }
     const data = refreshStatus()
     const settings = getSettings()
@@ -194,9 +55,9 @@ export default function Rotation() {
       targetTimeRef.current = null
     }
     skippingRef.current = false
-  }, [switchPlaylist, refreshStatus])
+  }, [refreshStatus])
 
-  // Keep doSkipRef in sync so the playback_update listener always calls the latest doSkip
+  // Keep doSkipRef in sync
   useEffect(() => { doSkipRef.current = doSkip }, [doSkip])
 
   // Single timer: ticks every second, updates countdown, triggers skip at 0
@@ -235,28 +96,6 @@ export default function Rotation() {
     }
   }, [refreshStatus])
 
-  // Initialize the Spotify player when rotation is enabled and we have a playlist
-  useEffect(() => {
-    if (!status?.enabled || !status?.current_playlist?.playlist_id) return
-    const pid = status.current_playlist.playlist_id
-
-    // If controller exists and already showing this playlist, nothing to do
-    if (controllerRef.current && currentPlIdRef.current === pid) return
-
-    // If controller exists but for a different playlist, destroy and recreate
-    if (controllerRef.current) {
-      switchPlaylist(pid)
-      return
-    }
-
-    // No controller yet — create one
-    if (apiReadyRef.current && embedElRef.current) {
-      createPlayer(apiReadyRef.current, pid)
-    } else {
-      pendingUriRef.current = pid
-    }
-  }, [status?.enabled, status?.current_playlist?.playlist_id, createPlayer, switchPlaylist])
-
   const formatTime = (secs) => {
     if (secs == null) return '--:--'
     const m = Math.floor(secs / 60)
@@ -278,53 +117,46 @@ export default function Rotation() {
     const data = refreshStatus()
     if (data.current_playlist) {
       recordPlaylistPlay(data.current_playlist.playlist_id, data.current_playlist.name)
+      openInSpotify(data.current_playlist.playlist_id)
     }
     if (settings.rotation_mode === 'interval') {
       const secs = (settings.interval_minutes || 1) * 60
       targetTimeRef.current = Date.now() + secs * 1000
       setCountdown(secs)
     }
-    setSuccessMsg('Rotation started!')
+    setSuccessMsg('Rotation started! Spotify should open — hit play there.')
   }
 
   const handleStop = () => {
     setError('')
     setSuccessMsg('')
-    // Reset all state
-    wasPlayingRef.current = false
     setSwitching(false)
     setSwitchCountdown(null)
     if (switchCountdownRef.current) { clearInterval(switchCountdownRef.current); switchCountdownRef.current = null }
-    if (endCheckTimerRef.current) { clearInterval(endCheckTimerRef.current); endCheckTimerRef.current = null }
     const rotation = getRotationState()
     saveRotationState({ ...rotation, enabled: false })
     setCountdown(null)
     targetTimeRef.current = null
     enabledRef.current = false
-    if (controllerRef.current) {
-      controllerRef.current.pause()
-    }
     refreshStatus()
   }
 
   const handleSkip = () => {
     setError('')
     setSuccessMsg('')
-    // Reset playlist-end detection state
-    wasPlayingRef.current = false
     setSwitching(false)
     setSwitchCountdown(null)
     if (switchCountdownRef.current) { clearInterval(switchCountdownRef.current); switchCountdownRef.current = null }
-    if (endCheckTimerRef.current) { clearInterval(endCheckTimerRef.current); endCheckTimerRef.current = null }
     const result = skipToNext()
     if (!result) {
       setError('No playlists to skip to.')
       return
     }
-    setSuccessMsg('Skipped!')
     if (result.current_playlist?.playlist_id) {
-      switchPlaylist(result.current_playlist.playlist_id)
+      recordPlaylistPlay(result.current_playlist.playlist_id, result.current_playlist.name)
+      openInSpotify(result.current_playlist.playlist_id)
     }
+    setSuccessMsg('Skipped! Opening next playlist in Spotify...')
     const data = refreshStatus()
     const settings = getSettings()
     if (settings.rotation_mode === 'interval') {
@@ -337,6 +169,12 @@ export default function Rotation() {
     }
   }
 
+  const handleOpenCurrent = () => {
+    if (currentPl?.playlist_id) {
+      openInSpotify(currentPl.playlist_id)
+    }
+  }
+
   const currentPl = status?.current_playlist
   const nextPl = status?.next_playlist
 
@@ -346,70 +184,88 @@ export default function Rotation() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-1">Rotation</h1>
-          <p className="text-gray-400">Press play once, AutoDJ handles the rest automatically.</p>
+          <p className="text-gray-400">AutoDJ opens playlists in your Spotify app — full songs, real streams.</p>
         </div>
 
         {successMsg && <p className="bg-green-900/30 border border-green-700 text-green-400 rounded-lg px-4 py-3 mb-4">{successMsg}</p>}
         {error && <p className="bg-red-900/30 border border-red-700 text-red-400 rounded-lg px-4 py-3 mb-4">{error}</p>}
 
-        {/* Spotify Player (managed by IFrame API) */}
-        <div style={{ display: status?.enabled && currentPl ? 'block' : 'none' }} className="mb-6">
-          {status?.enabled && currentPl && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="w-3 h-3 rounded-full bg-green-500 animate-pulse flex-shrink-0"></span>
-                <span className="text-green-400 font-semibold truncate">Now Playing: {currentPl.name}</span>
+        {/* Now Playing Card */}
+        {status?.enabled && currentPl && (
+          <div className="bg-gradient-to-br from-green-900/40 to-gray-800 rounded-xl p-6 border border-green-700/50 mb-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-3 h-3 rounded-full bg-green-500 animate-pulse flex-shrink-0"></span>
+                  <span className="text-green-400 text-sm font-medium uppercase tracking-wide">Now Playing</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold truncate mb-1">{currentPl.name}</h2>
+                <p className="text-gray-400 text-sm">Playing in your Spotify app</p>
               </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 mt-5">
+              <button
+                onClick={handleOpenCurrent}
+                className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-semibold px-5 py-3 rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+                Open in Spotify
+              </button>
               <button
                 onClick={handleSkip}
-                className="bg-gray-700 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors text-sm flex-shrink-0"
+                className="flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold px-5 py-3 rounded-lg transition-colors"
               >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
                 Skip to Next
               </button>
             </div>
-          )}
-          <div className="rounded-xl overflow-hidden bg-gray-800" style={{ minHeight: 232 }}>
-            <div ref={embedElRef}></div>
           </div>
-        </div>
+        )}
 
-        {/* Countdown Timer — interval mode only */}
+        {/* Countdown Timer — interval mode */}
         {status?.enabled && status?.rotation_mode === 'interval' && countdown != null && (
           <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-6 text-center">
             <p className="text-gray-400 text-sm mb-2">Next playlist switch in</p>
             <p className="text-4xl sm:text-5xl font-mono font-bold text-green-400">{formatTime(countdown)}</p>
-            <p className="text-gray-500 text-sm mt-2">Every {status.interval_minutes} minutes</p>
+            <p className="text-gray-500 text-sm mt-2">Every {status.interval_minutes} minutes — Spotify will open automatically</p>
           </div>
         )}
-        {/* Playlist End mode — auto-detect indicator */}
+
+        {/* Playlist End mode — manual skip notice */}
         {status?.enabled && status?.rotation_mode === 'playlist_end' && (
-          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-6">
-            <div className="flex items-center gap-3">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse"></span>
-              <p className="text-gray-300 text-sm">
-                <span className="text-blue-400 font-medium">Auto-detect mode</span> — AutoDJ will switch to the next playlist when this one finishes. Skip songs freely, it tracks your actual playback.
-              </p>
+          <div className="bg-gray-800 rounded-lg p-5 border border-blue-500/30 mb-6">
+            <div className="flex items-start gap-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse mt-1.5 flex-shrink-0"></span>
+              <div>
+                <p className="text-blue-400 font-medium mb-1">Manual Switch Mode</p>
+                <p className="text-gray-400 text-sm">
+                  When your current playlist ends in Spotify, tap <strong className="text-white">Skip to Next</strong> above to open the next playlist.
+                  For fully automatic switching, go to Settings and switch to <strong className="text-white">Interval mode</strong>.
+                </p>
+              </div>
             </div>
           </div>
         )}
 
+        {/* Switching overlay */}
+        {switching && (
+          <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-6 mb-6 text-center">
+            <p className="text-red-400 font-mono font-bold text-3xl mb-2">Switching in {switchCountdown ?? 0}...</p>
+            <p className="text-gray-400 text-sm">The next playlist will open in Spotify automatically</p>
+          </div>
+        )}
+
         {/* Next Up */}
-        {status?.enabled && nextPl && (
-          <div className={`bg-gray-800 rounded-lg p-4 border mb-6 ${switching ? 'border-red-500/50' : 'border-gray-700'}`}>
+        {status?.enabled && nextPl && !switching && (
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-xs uppercase tracking-wide">Up Next</p>
                 <h3 className="text-lg font-semibold">{nextPl.name}</h3>
               </div>
-              {switching ? (
-                <span className="text-red-400 font-mono font-bold text-sm">
-                  Switching in {switchCountdown ?? 0}...
-                </span>
-              ) : (
-                <span className="text-gray-500 text-sm">
-                  {status?.rotation_mode === 'interval' ? 'Auto-switches when timer ends' : 'Auto-switches when playlist ends'}
-                </span>
-              )}
+              <span className="text-gray-500 text-sm">
+                {status?.rotation_mode === 'interval' ? 'Auto-switches when timer ends' : 'Use Skip to switch'}
+              </span>
             </div>
           </div>
         )}
@@ -437,6 +293,14 @@ export default function Rotation() {
                       <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Now</span>
                     )}
                   </div>
+                  <a
+                    href={`https://open.spotify.com/playlist/${pl.playlist_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-green-400 hover:text-green-300 text-xs"
+                  >
+                    Open
+                  </a>
                 </div>
               ))}
             </div>
@@ -464,8 +328,8 @@ export default function Rotation() {
           </div>
           <p className="text-gray-500 text-sm mt-3 text-center">
             {status?.enabled
-              ? 'Press play once on the player above. AutoDJ will switch playlists and keep playing automatically.'
-              : 'Press Start to begin. A Spotify player will appear — just hit play once.'}
+              ? 'AutoDJ opens playlists in your Spotify app. Just keep Spotify running!'
+              : 'Press Start to begin. Your first playlist will open in Spotify automatically.'}
           </p>
         </div>
 
@@ -480,12 +344,15 @@ export default function Rotation() {
               </div>
               <div className="p-3">
                 <p className="text-2xl mb-2">2</p>
-                <p>Press <span className="text-green-400">play once</span> on the Spotify player</p>
+                <p>Spotify opens — <span className="text-green-400">press play</span> in the Spotify app</p>
               </div>
               <div className="p-3">
                 <p className="text-2xl mb-2">3</p>
-                <p>AutoDJ <span className="text-green-400">auto-switches & plays</span> on schedule</p>
+                <p>AutoDJ <span className="text-green-400">auto-opens the next playlist</span> when the timer ends</p>
               </div>
+            </div>
+            <div className="mt-4 p-3 bg-green-900/20 border border-green-700/30 rounded-lg">
+              <p className="text-green-400 text-sm">Full songs — Real Spotify streams — Counts on charts</p>
             </div>
           </div>
         )}
